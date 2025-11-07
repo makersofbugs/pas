@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -e
+
+CLANG_FORMAT="./scripts/git-clang-format"
+NIX_FORMAT="nixfmt"
+
+# TODO: this is necessary because nixfmt doesn't make the commit stop when it formats the file.
+# The commit will be made even if the formatting changes is only in the working area
+NIX_CHANGED=0
+
+
+if ! $NIX_FORMAT -c -q flake.nix; then
+    echo "Formatting flake.nix with $NIX_FORMAT"
+    $NIX_FORMAT flake.nix
+    NIX_CHANGED=1
+fi
+
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(c|h)$' || true)
+if [ -n "$FILES" ]; then
+    echo "Formatting code with $CLANG_FORMAT"
+    $CLANG_FORMAT --staged
+fi
+
+if [ "$NIX_CHANGED" -eq 1 ]; then
+    exit 1
+fi
+
+exit 0
